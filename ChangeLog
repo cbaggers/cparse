@@ -1,3 +1,7 @@
+2004-05-15  Christian Lynbech  <clynbech@common-lisp.net>
+
+	* acl-alien.lisp: New file.
+
 2004-05-14  Christian Lynbech  <clynbech@common-lisp.net>
 
 	* cmu-alien.lisp (alien-not-implemented): Added formal parameters.
