@@ -1,8 +1,15 @@
 cparse is a Common Lisp package for parsing the subset of ANSI C that is
 likely to be in header files.  It understands variable and function
 declarations arrays, structures, enums, and constant expressions.  It
-also includes cmu-alien.lisp, which uses cparse to construct foreign
-function definitions for CMUCL's alien facility.
+also includes three usages of cparse to construct foreign
+function definitions for different alien facilities:
+    - cmu-alien.lisp        FFI for CMUCL
+    - acl-alien.lisp	    FFI for Allegro CL
+    - uffi-alien.lisp	    FFI for the portable UFFI library
+All three are included for historical completeness. The CMUCL solution
+was what cparse was originally written to handle. The ACL solution was
+later written by Christian Lynbech. Both are no longer supported, all
+effort will be used on the UFFI solution.
 
 CPARSE
 
@@ -67,5 +74,5 @@ easier than the latter.
 
 REPORTING BUGS
 
-Send bugs to moore@bricoworks.com.  It's most helpful if you can send
+Send bugs to cparse-devel@common-lisp.net.  It's most helpful if you can send
 C files that have been preprocessed.
