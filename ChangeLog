@@ -1,7 +1,13 @@
 2004-11-24  Christian Lynbech  <christian.lynbech@ericsson.com>
 
+	* test1.h: New file.
+	* test2.h: New file.
+	* test3.h: New file.
+	* 00debug.lisp: New file.
+	* 01debug.lisp: New file.
+	* dir-test-ffi.lisp: New file.
+	* dir-test.c: New file.
 	* uffi-alien.lisp: New file.
-
 	* system.lisp: Removed.
 
 	* ctype.lisp (print-object): moved PCL guard into lambda.
