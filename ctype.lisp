@@ -34,14 +34,17 @@
 (defclass c-super ()
   ())
 
-#+PCL
+
 (defmethod print-object ((obj c-super) stream)
   (let ((slots (mapcan #'(lambda (slot-def)
-			   (let ((name (pcl:slot-definition-name slot-def)))
+			   (let ((name 
+				  #+PCL (pcl:slot-definition-name slot-def)
+				  #+allegro (mop:slot-definition-name slot-def)))
 			     (if (slot-boundp obj name)
 				 (list name (slot-value obj name))
 				 nil)))
-		       (pcl:class-slots (class-of obj)))))
+		       #+PCL (pcl:class-slots (class-of obj))
+		       #+allegro (mop:class-slots (class-of obj)))))
     (print-unreadable-object  (obj stream :type t)
       (format stream "~<~@{~W ~@_~W~^ ~_~}~:>" slots))))
 
@@ -53,9 +56,10 @@
 
 (defmacro defnumtype (cname super &body body)
   "Define class CNAME with superclasses SUPER and CNAME-CONST with superclasses
-(,@SUPER c-const)"
+\(,@SUPER c-const\)"
   (let ((const-name (intern (concatenate 'string
-					 (symbol-name cname) "-CONST"))))
+			      (symbol-name cname) 
+			      (symbol-name '-const)))))
     `(progn
        (defclass ,cname ,super ,@body)
        (defclass ,const-name (,cname c-const) ,@body))))
@@ -64,6 +68,18 @@
   ())
 
 (defclass cinteger-super ()
+  ())
+
+(defnumtype byte (cinteger-super)
+  ())
+
+(defnumtype unsigned-byte (unsigned byte)
+  ())
+
+(defnumtype short (cinteger-super)
+  ())
+
+(defnumtype unsigned-short (unsigned short)
   ())
 
 (defnumtype int (cinteger-super)
@@ -82,12 +98,6 @@
   ())
 
 (defnumtype unsigned-long-long (unsigned long-long)
-  ())
-
-(defnumtype short (cinteger-super)
-  ())
-
-(defnumtype unsigned-short (unsigned short)
   ())
 
 (defclass cfloat-super ()
@@ -114,9 +124,11 @@
 (defgeneric unsignedp (comp-imp type))
 
 (defmethod unsignedp (comp-imp (type t))
+  (declare (ignore comp-imp))
   nil)
 
 (defmethod unsignedp (comp-imp (type unsigned))
+  (declare (ignore comp-imp))
   t)
 
 (defgeneric max-val (comp-imp type))
@@ -131,6 +143,7 @@
   (1- (expt 2 (type-width comp-imp type))))
 
 (defmethod min-val (comp-imp (type unsigned))
+  (declare (ignore comp-imp))
   0)
 
 ;;; Class representing C compiler implementation characteristics.
@@ -140,6 +153,11 @@
   ())
 
 (defgeneric type-width (comp-imp type))
+
+;;; fallback - this is bad but shouldn't halt generation
+(defmethod type-width (comp-imp type)
+  (warn "Type ~A is too complex for `type-width' - substituting 0!" type)
+  0)
 
 (defmethod type-width ((comp-imp compiler-impl) (type char))
   8)
@@ -325,8 +343,9 @@ bit is extended."
 					      (type-width cimpl op1)))))
 
 (defmacro def-c-op (c-func float-func int-func)
-  (let ((internal-op (intern (concatenate 'simple-string (string c-func)
-					  "-INTERNAL")
+  (let ((internal-op (intern (concatenate 'simple-string 
+			       (string c-func)
+			       (symbol-name '-internal))
 			     :cparse)))
     `(progn
       (defun ,c-func (cimpl op1 op2)
@@ -416,6 +435,7 @@ bit is extended."
 (defgeneric c!-internal (cimpl op))
 
 (defmethod c!-internal (cimpl (op c-const))
+  (declare (ignore cimpl))
   (make-instance 'int-const
 		 :value (if (= (value op) 0)
 			    1

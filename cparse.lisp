@@ -35,7 +35,9 @@
 
 (defvar *compiler-implementation* nil)
 
-(defvar *cparse-debug* nil)
+(defvar *cparse-debug* nil
+  "Turn on debugging output.
+If not nil and not t turn on even more debugging output.")
 
 (defclass lookahead-stream ()
   ((stream :accessor stream :initarg :stream)
@@ -233,20 +235,23 @@ is saved to be returned in the future by CONSUME."))
 ;;; A superclass for all our types.  We can hang our own print-object method
 ;;; off it and stuff.
 
-(defclass cparse-object ()
-  ())
+(eval-when (load compile eval)
+  (defclass cparse-object ()
+    ()))
 
 ;;; Obviously there are ways to do this in other CLOSes and MOPs, but I
 ;;; don't know what they are.
 
-#+PCL
 (defmethod print-object ((obj cparse-object) stream)
   (let ((slots (mapcan #'(lambda (slot-def)
-			   (let ((name (pcl:slot-definition-name slot-def)))
+			   (let ((name 
+				  #+PCL (pcl:slot-definition-name slot-def)
+				  #+allegro (mop:slot-definition-name slot-def)))
 			     (if (slot-boundp obj name)
 				 (list name (slot-value obj name))
 				 nil)))
-		       (pcl:class-slots (class-of obj)))))
+		       #+PCL (pcl:class-slots (class-of obj))
+		       #+allegro (mop:class-slots (class-of obj)))))
     (print-unreadable-object  (obj stream :type t)
       (format stream "~<~@{~W ~@_~W~^ ~_~}~:>" slots))))
 
@@ -263,12 +268,13 @@ is saved to be returned in the future by CONSUME."))
 					  (error "Invalid slot ~S" slot)))
 				 `(,name :accessor ,name
 				   :initarg ,(intern (string name)
-						     "KEYWORD")
+						     :keyword)
 				   ,@args)))
 			   slots)))
-     `(defclass ,class-name ,supers
-	,new-slots
-	,@class-options)))
+     `(eval-when (load compile eval)
+       (defclass ,class-name ,supers
+	 ,new-slots
+	 ,@class-options))))
 
 ;;; Classes for constant numbers
 
@@ -474,7 +480,7 @@ integer constant."
 (let ((keywords '("float" "double" "typedef" "extern" "void"
 		  "char" "int" "long" "const" "volatile" "signed"
 		  "unsigned"  "short" "struct" "union" "enum"
-		  "__attribute__" "__mode__" ; gcc extension
+		  "__attribute__" "__mode__" "__extension__" ; gcc extension
 		  "sizeof")))
   (loop for keyword in keywords
 	do (setf (gethash keyword +c-keywords+) (intern keyword))))
@@ -517,9 +523,10 @@ integer constant."
      finally (return (progn
 		       (unreadc c lstream)
 		       (case state
+			 #+nil 		;unreachable anyway according to CMUCL
 			 ((:number)
 			  (cparse-error
-				 "How did we get in :number state?"))
+			   "How did we get in :number state?"))
 			 ((:id)
 			  (intern-token tok))
 			 (t (cparse-error
@@ -544,8 +551,9 @@ integer constant."
   new)
 
 (macrolet ((frob-prim-type (type)
-	     (let ((cparse-type (intern (concatenate 'string "CPARSE-"
-						     (symbol-name type)))))
+	     (let ((cparse-type (intern (concatenate 'string 
+					  (symbol-name 'cparse-)
+					  (symbol-name type)))))
 	       `(defc ,cparse-type (,type c-type)
 		  ()))))
   (frob-prim-type void)
@@ -558,6 +566,8 @@ integer constant."
   (frob-prim-type unsigned-int)
   (frob-prim-type long)
   (frob-prim-type unsigned-long)
+  (frob-prim-type long-long)
+  (frob-prim-type unsigned-long-long)
   (frob-prim-type cfloat)
   (frob-prim-type double))
 
@@ -569,7 +579,7 @@ integer constant."
 
 (defc array-type (c-type)
   ((of :type c-type)
-   (len :type (or fixnum null))))
+   (len :type (or int-const fixnum null))))
 
 (defmethod %copy-type :after ((type array-type) new)
   (setf (of new) (of type)
@@ -678,7 +688,8 @@ compiler-impl that controls the implementation of C arithmetic.
 Default is an object of type 'impl-32bit.
 :scope - A scope object, possibly the result of an earlier run of
 cparse-stream.
-:stmt-fun - that is called for every statement with (parse-tree scope lstream)."
+:stmt-fun - that is called for every statement with
+\(parse-tree scope lstream\)."
   (let* ((lstream (make-instance 'lookahead-stream
 				 :stream stream
 				 :file-name file-name))
@@ -700,6 +711,8 @@ cparse-stream.
 		(file-name lstream) (line-number lstream))))))
 
 (defun cparse-stmt (lstream)
+  (when (member (look lstream) '(|__extension__|))
+    (consume lstream))
   (when (eq (look lstream) '|typedef|)
     (consume lstream)
     (return-from cparse-stmt
@@ -815,24 +828,27 @@ cparse-stream.
 		 type)))
       (loop
        for token = (look lstream) then (consume lstream)
-       do (cond ((member token +decl-keywords+ :test #'eq)
-		 (push token keywords))
-		;; use value of setq
-		((setq maybe-typedef (lookup 'objects token))
-		 (setq typedef-type (defined-type maybe-typedef)))
-		((member token prim-qualifiers :test #'eq)
-		 (pushnew token qualifiers))
-		((or (eq token '|struct|) (eq token '|union|))
-		 (return-from parse-decl-type
-		   (do-qualifiers (parse-struct-union lstream))))
-		((eq token '|enum|)
-		 (return-from parse-decl-type
-		   (do-qualifiers (parse-enum lstream))))
-		(t (loop-finish))))
+       do (when (and *cparse-debug* (not (eq *cparse-debug* t)))
+	    (format *error-output* "Next token: ~S~%" token))
+          (cond
+	    ((member token +decl-keywords+ :test #'eq)
+	     (push token keywords))
+	    ;; use value of setq
+	    ((setq maybe-typedef (lookup 'objects token))
+	     (setq typedef-type (defined-type maybe-typedef)))
+	    ((member token prim-qualifiers :test #'eq)
+	     (pushnew token qualifiers))
+	    ((or (eq token '|struct|) (eq token '|union|))
+	     (return-from parse-decl-type
+	       (do-qualifiers (parse-struct-union lstream))))
+	    ((eq token '|enum|)
+	     (return-from parse-decl-type
+	       (do-qualifiers (parse-enum lstream))))
+	    (t (loop-finish))))
       (if typedef-type
 	(do-qualifiers typedef-type)
 	(make-prim-type qualifiers keywords)))))
-
+#+nil  ;why are there two versions of this function --tedchly/20040401
 (defun parse-declarator (lstream decl-type)
   (let (new-type
 	id
@@ -1311,7 +1327,7 @@ expression."))
 				  (push-back initial lstream)
 				  (parse-unary-expression lstream))))
 			   (t (parse-unary-expression lstream)))))
-    (make-instance 'int-const (sizeof sized-type))))
+    (make-instance 'int-const :value (sizeof sized-type))))
 
 (defgeneric sizeof (type))
 
@@ -1330,8 +1346,12 @@ expression."))
 (defmethod alignof ((type compound-type))
   (alignment type))
 
+(defparameter *a-pointer* (make-instance 'pointer-type))
+
 (defmethod sizeof ((type array-type))
-  (* (sizeof (of type)) (value (len type))))
+  (if (len type)
+      (* (sizeof (of type)) (value (len type)))
+      (sizeof *a-pointer*)))
 
 (defmethod alignof ((type array-type))
   (alignof (of type)))

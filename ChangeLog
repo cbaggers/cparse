@@ -1,5 +1,50 @@
+2004-11-24  Christian Lynbech  <christian.lynbech@ericsson.com>
+
+	* uffi-alien.lisp: New file.
+
+	* system.lisp: Removed.
+
+	* ctype.lisp (print-object): moved PCL guard into lambda.
+	(print-object): Added allegro guard.
+	(defnumtype): Added escapes to documentation string.
+	(defnumtype): Case-robustified 'const-name' initial value.
+	(byte): New defnumtype.
+	(unsigned-byte): New defnumtype.
+	(short): Moved upwards
+	(unsigned-short): Moved upwards.
+	(unsignedp, min-val, c!-internal): Added ignore declaration.
+	(type-width): Added fallback method.
+	(def-c-op): Case-robustified 'internal-op' initial value.
+
+	* cparse.system: (*cparse-backend*): New variable.
+	(toplevel): Added require of :uffi when this is backend.
+	(toplevel): Guarded hash string test with CMU.
+	(toplevel): Added ASDF to-be-done guard.
+	(toplevel): Reorganised MK based defsystem.
+	(toplevel): Added Allegro defsystem.
+	
+	* cparse.lisp (*cparse-debug*): Added documentation.
+	(cparse-object): Wrapped in 'eval-when',
+	(print-object): Moved PCL guard into lambda and added allegro guard.
+	(defc): Intern initargs in keyword package.
+	(defc): Wrapped generated class in 'eval-when'.
+	(+c-keywords+): Added "__extension__".
+	(tok): Outcommented :number case in return value.
+	(frob-prim-type): Case-robustified 'cparse-type' value.
+	(frob-prim-type): Added 'long-long' and 'unsigned-long-long'.
+	(array-type): Added 'int-const'.
+	(cparse-stream): Added escapes in documentation.
+	(cparse-stmt): Added consumption of '__extension__' keywords.
+	(parse-decl-type): Added debug-ouput.
+	(parse-declarator): Outcommented second version of this function.
+	(parse-sizeof): Added :value keyword.
+	(*a-pointer*): New parameter.
+
 2004-05-15  Christian Lynbech  <clynbech@common-lisp.net>
 
+	* cparse-package.lisp: File removed. 
+	* system.lisp: New File.
+	* package.lisp: New file.
 	* acl-alien.lisp: New file.
 
 2004-05-14  Christian Lynbech  <clynbech@common-lisp.net>
