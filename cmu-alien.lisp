@@ -52,7 +52,8 @@ argument."
   (intern (c-name-to-lisp-name csym) package))
 )
 
-(define-condition alien-not-implemented (cparse-error))
+(define-condition alien-not-implemented (cparse-error)
+  (format-string &rest format-args))
 
 (defvar *struct-tags*)
 
@@ -78,7 +79,7 @@ and can be used for extra macro definitions, #includes, etc."
       (dolist (file files)
 	(format cpp-file-stream
 		"#include \"~A\"~%"
-		(if (eql (char file 0) #\/)
+		(if (eql (cl:schar file 0) #\/)
 		    file
 		    (concatenate 'string default-dir file))))
       (close cpp-file-stream))
