@@ -4,14 +4,16 @@
 main() {
   DIR *handle;
   struct dirent *entry;
-  int x;
+  int x = 0;
 
-  printf("\n\n============\n");
-  handle = opendir("/home/tedchly");
-  for (x=0; x<=5; x++) {
+  printf("DIRTEST/c\n");
+  handle = opendir("/tmp");
+  entry = (struct dirent *)1;
+  while (handle && entry) {
     entry = readdir(handle);
     if (entry)
-      printf("Entry: %s\n", entry->d_name);
+      printf("%d: %s\n", x++, entry->d_name);
   }
+  closedir(handle);
 }
 
