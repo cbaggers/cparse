@@ -29,4 +29,8 @@ core
 cmu-alien.err
 cmu-alien.err
 cparse.err
+cparse.x86f
+ctype.x86f
+package.x86f
 uffi-alien.err
+uffi-alien.x86f
