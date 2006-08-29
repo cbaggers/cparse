@@ -2,7 +2,7 @@
 ;;; Copyright (c) 2001 Timothy Moore
 ;;; All rights reserved.
 ;;;
-;;; Modified 2004 by Christian Lynbech.
+;;; Modified 2004-2006 by Christian Lynbech.
 ;;;
 ;;; Redistribution and use in source and binary forms, with or without
 ;;; modification, are permitted provided that the following conditions
@@ -32,10 +32,16 @@
 (defvar *cpp-args-defaults* '("-D__restrict="
 			      "-D__extension__="
 			      "-D__attribute__(x)="
-			      "-D__const="
-			      ;;CMUCL does not support long long and
-			      ;;the pthreadtypes header file uses it
-			      #+cmu "-D_BITS_PTHREADTYPES_H"))
+			      "-D__const=")
+  "Default arguments given to 'cpp' when preprocessing the supplied file.
+Can be used both to define specific features that are relevant to the file
+being processed and to get rid of stuff that CPARSE does not know how
+to handle such as GCC extensions like __restrict.
+
+Implementation note: 'long long' is not supported by UFFI, so we use backend
+specific translations when they are known.
+One particular troublesome Linux header file is \"pthreadtypes\" which may
+be turned off by adding \"-D_BITS_PTHREADTYPES_H\" to the cpp argument list.")
 
 (defmacro with-temp-file ((file-name
 			   &optional
@@ -94,8 +100,9 @@ loaded. This option is only active if :FILE is non-nil.
 :CPP-ARGS is a list of command-line arguments for the C
 preprocessor (for example, '\(\"-I/usr/X11R6/include\"\)\).
 
-The value of :CPP-ARGS will be added to the value of
-*cpp-args-defaults* unless :NO-CPP-DEFAULTS is non-true.
+:CPP-ARGS is a list of arguments to be given as arguments to the
+CPP call.  Also added as arguments are those of *cpp-args-defaults*
+unless :NO-CPP-DEFAULTS is non-nil.
 
 :EXTRA-CPP-LINES are added to the file passed to the C preprocessor
 and can be used for extra macro definitions, #includes, etc."

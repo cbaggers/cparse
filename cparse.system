@@ -1,7 +1,7 @@
 ;;; Copyright (c) 2001 Timothy Moore                             -*- lisp -*-
 ;;; All rights reserved.
 ;;;
-;;; Modified 2004 by Christian Lynbech
+;;; Modified 2004, 2006 by Christian Lynbech
 ;;;
 ;;; Redistribution and use in source and binary forms, with or without
 ;;; modification, are permitted provided that the following conditions
@@ -29,6 +29,8 @@
 ;;;
 ;;; CPARSE - library for parsing C header files.
 
+(clc:clc-require :uffi)
+
 ;; Choose one of the supported backends
 (defvar *cparse-backend* (nth 0 '("uffi-alien" "cmu-alien" "acl-alien")))
 
@@ -37,12 +39,15 @@
 
 #+CMU
 ;;; CMUCL 18c and earlier doesn't hash strings with fill pointers correctly.
+;;; The code below checks for the problem and adds 'hash-fill-bug' to features
+;;; in case the implementation has the problem.
 (let ((string-with-fill (make-array 32
 				    :element-type 'base-char
 				    :adjustable t
 				    :fill-pointer 7)))
   (setf (subseq string-with-fill 0) "typedef")
   (unless (= (sxhash string-with-fill) (sxhash "typedef"))
+    (warn "This CMUCL has the 'hash-fill-bug' feature.")
     (pushnew :hash-fill-bug *features*)))
 
 
@@ -51,7 +56,12 @@
 ;;; with whatever kind of system his is most comfortable with.
 
 #+ASDF
-'(to-be-done asdf:defsystem cparse)
+(asdf:defsystem :cparse
+  :serial t
+  :components ((:file "package")
+	       (:file "ctype")
+	       (:file "cparse")
+	       (:file #.*cparse-backend*)))
 
 #+MK-DEFSYSTEM
 (mk:defsystem cparse

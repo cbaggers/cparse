@@ -1,3 +1,19 @@
+2006-08-29  Christian Lynbech  <christian@defun.dk>
+
+	* test3.lisp: New file.
+	* test4.lisp: New file.
+	
+	* uffi-alien.lisp (*cpp-args-defaults*): Removed "-D_BITS_PTHREADTYPES_H"
+	and docstring instead.
+	(make-alien-defs): Updated docstring.
+
+	* cparse.system: Added CLC require for UFFI. Changed from defsystem to
+	asdf. Added warning for the CMUCL hash fill bug.
+
+	* 00debug.lisp: Added case for uffi-1.5.5 and uffi-1.5.15. 
+	Changed from defsystem to asdf.
+	(*uffi*): changed to allow quicker switching.
+
 2004-11-29  Christian Lynbech  <christian.lynbech@ericsson.com>
 
 	* 02debug.lisp: New file.

@@ -1,6 +1,6 @@
 ;;;; debug.lisp --- various forms usefull when doing debugging.
 
-(defparameter *uffi* '|1.4.30|)
+(defparameter *uffi* (nth 2 '(dist |1.5.5| |1.5.15| cl-home)))
 
 (case *uffi*
   (cl-home (load "../../cl-home/cl-uffi/uffi.asd")
@@ -9,17 +9,24 @@
 	    (asdf:operate 'asdf:load-op :uffi))
   (|1.4.30| (load "../cl-uffi-1.4.30/uffi.asd")
 	    (asdf:operate 'asdf:load-op :uffi))
+  (|1.5.5| (load "../cl-uffi-1.5.5/uffi.asd")
+	    (asdf:operate 'asdf:load-op :uffi))
+  (|1.5.15| (load "../cl-uffi-1.5.15/uffi.asd")
+	    (asdf:operate 'asdf:load-op :uffi))
   (dist (clc:clc-require :uffi)))
 
-(load "/usr/share/common-lisp/source/defsystem/defsystem.lisp")
+;(load "/usr/share/common-lisp/source/defsystem/defsystem.lisp")
 
 (load "cparse.system")
 
 #+nil
 (mk:clean-system :cparse)
 
+#+nil
 (progn
   (mk:compile-system :cparse) (mk:load-system :cparse))
+
+(asdf:operate 'asdf:load-op :cparse)
 
 (defun dotest (&rest files)
   (flet ((test-1 (file)
